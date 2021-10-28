@@ -3,8 +3,6 @@ package com.kanok.inserter;
 import com.github.javafaker.Faker;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -25,18 +23,18 @@ public abstract class BulkInserter {
 
     protected final String tableName;
     protected final Timestamp insertTime;
-    private final long insertNum;
+    private final long totalInsert;
     private final Connection connection;
 
     protected Faker faker;
     protected SplittableRandom splittableRandom;
     protected BCryptPasswordEncoder encoder;
 
-    protected BulkInserter(String tableName, Timestamp insertTime, long insertNum, Connection connection) {
+    protected BulkInserter(String tableName, Timestamp insertTime, long totalInsert, Connection connection) {
         this.tableName = tableName;
         this.connection = connection;
         this.insertTime = insertTime;
-        this.insertNum = insertNum;
+        this.totalInsert = totalInsert;
     }
 
     public int insert() throws SQLException {
@@ -53,7 +51,7 @@ public abstract class BulkInserter {
         long start = startTableBatch();
 
         int totalInserted = 0;
-        for (long i = 1; i < insertNum + 1; i++) {
+        for (long i = 1; i < totalInsert + 1; i++) {
             setStatementData(preparedStatement, i);
             totalInserted += executeBatch(preparedStatement, totalInserted, start, i);
         }
