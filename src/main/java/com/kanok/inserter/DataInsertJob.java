@@ -1,24 +1,17 @@
 package com.kanok.inserter;
 
-import com.github.javafaker.Faker;
-import com.github.javafaker.Name;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.kanok.inserter.model.User;
+import com.kanok.inserter.service.FakeDataService;
+import com.kanok.inserter.service.RetrieveDbDataService;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.*;
-import java.util.SplittableRandom;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.kanok.inserter.constants.ImportConstants.*;
+import static com.kanok.inserter.service.UtilsService.*;
 
 public class DataInsertJob {
-
-    private static final int TOTAL_USER = 1000;
-    private static final int TOTAL_ARTICLE_TYPE = 50;
-    private static final int TOTAL_ARTICLE = 300000;
-    private static final int TOTAL_CATEGORY = 10;
-    private static final int TOTAL_CATEGORY_ADMIN = 20;
-    private static final int TOTAL_TOPIC = 50000;
-    private static final int TOTAL_POST = 5000000;
-    private static final int TOTAL_TOPIC_WATCHING_USER = 50000;
 
     public void run(String connectionUrl) {
         try (Connection connection = DriverManager.getConnection(connectionUrl)) {
@@ -29,7 +22,7 @@ public class DataInsertJob {
     }
 
     //TODO stop indexing and constraints?
-    private void bulkInsert(Connection connection) throws SQLException, NoSuchAlgorithmException {
+    private void bulkInsert(Connection connection) throws SQLException {
         int expectedTotalInserted = TOTAL_USER + TOTAL_ARTICLE_TYPE + TOTAL_ARTICLE + TOTAL_CATEGORY + TOTAL_CATEGORY_ADMIN + TOTAL_TOPIC + TOTAL_POST + TOTAL_TOPIC_WATCHING_USER;
         System.out.println("Start bulk insert. Expected total inserted rows: " + expectedTotalInserted);
 
@@ -39,216 +32,226 @@ public class DataInsertJob {
 
         connection.setAutoCommit(false);
 
+        RetrieveDbDataService dbDataService = new RetrieveDbDataService(connection);
+        FakeDataService fakeDataService = new FakeDataService();
+        BulkInserter bulkInserter;
+
         //TODO add images insert
         //insertImages(connection);
-        Faker faker = new Faker();
-        SplittableRandom splittableRandom = new SplittableRandom();
 
-        // Insert users START
-        BulkInserter bulkInserter = new BulkInserter("users", insertTime, TOTAL_USER, connection) {
-            @Override
-            public String createQuery() {
-                return prepareQuery(
-                        COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
-                        "about_us", "enabled", "token_expired",
-                        "role",
-                        "post_count", "topic_count", "article_count",
-                        "first_name", "last_name", "username", "email", "password", "about_me");
-            }
-
-            @Override
-            protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
-                setStatementsIdCreatedUpdated(preparedStatement, id);
-                preparedStatement.setBoolean(4, false);
-                preparedStatement.setBoolean(5, true);
-                preparedStatement.setBoolean(6, true);
-                int role;
-                if (id <= 5) {
-                    // ROLE ADMIN
-                    role = 1;
-                } else if (id <= 50) {
-                    // ROLE SPECIALISTS
-                    role = 2;
-                } else {
-                    // ROLE USER
-                    role = 3;
+        if (IMPORT_USER) {
+            List<User> listUsers = fakeDataService.createFakeUsers();
+            // Insert users START
+            bulkInserter = new BulkInserter(TABLE_NAME_USERS, insertTime, TOTAL_USER, connection) {
+                @Override
+                public String createQuery() {
+                    return prepareQuery(
+                            COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
+                            "about_us", "enabled", "token_expired",
+                            "role",
+                            "post_count", "topic_count", "article_count",
+                            "first_name", "last_name", "username", "email", "password", "about_me");
                 }
-                preparedStatement.setInt(7, role); // role
-                preparedStatement.setLong(8, 0L); // post_count
-                preparedStatement.setLong(9, 0L); // topic_count
-                preparedStatement.setLong(10, 0L); // article_count
-                Name name = faker.name();
-                preparedStatement.setString(11, name.firstName()); //first_name
-                preparedStatement.setString(12, name.lastName()); //last_name
-                preparedStatement.setString(13, name.username()); //username
-                preparedStatement.setString(14, name.lastName() + "." + name.firstName() + "@gmail.com"); //email
-                preparedStatement.setString(15,  encoder.encode(name.firstName() + name.lastName())); //password
-                preparedStatement.setString(16, "about_me"); //about_me
-            }
-        };
-        bulkInserter.setFaker(faker);
-        bulkInserter.setSplittableRandom(splittableRandom);
-        bulkInserter.setEncoder(new BCryptPasswordEncoder());
-        totalInserted += bulkInserter.insert();
-        // Insert users END
-        // Insert article_type START
-        bulkInserter = new BulkInserter("article_type", insertTime, TOTAL_ARTICLE_TYPE, connection) {
-            @Override
-            public String createQuery() {
-                return prepareQuery(
-                        COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
-                        COL_NAME_NAME);
-            }
 
-            @Override
-            protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
-                setStatementsIdCreatedUpdated(preparedStatement, id);
-                preparedStatement.setString(4, "article" + id); //name
-            }
-        };
-        totalInserted += bulkInserter.insert();
-        // Insert article_type END
+                @Override
+                protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
+                    setStatementsIdCreatedUpdated(preparedStatement, id);
+                    preparedStatement.setBoolean(4, false);
+                    preparedStatement.setBoolean(5, true);
+                    preparedStatement.setBoolean(6, true);
+                    preparedStatement.setInt(7, getRole(id)); // role
+                    preparedStatement.setLong(8, 0L); // post_count
+                    preparedStatement.setLong(9, 0L); // topic_count
+                    preparedStatement.setLong(10, 0L); // article_count
+                    User u = listUsers.get((int) id - 1);
+                    preparedStatement.setString(11, u.getFirstName()); //first_name
+                    preparedStatement.setString(12, u.getLastName()); //last_name
+                    preparedStatement.setString(13, u.getUsername()); //username
+                    preparedStatement.setString(14, u.getEmail()); //email
+                    preparedStatement.setString(15, u.getHashedPassword()); //password
+                    preparedStatement.setString(16, u.getAboutMe()); //about_me
+                }
+            };
+            totalInserted += bulkInserter.insert();
+            // Insert users END
+        }
+
+        List<Long> admins = new ArrayList<>();
+        List<Long> adminSpecialist = new ArrayList<>();
+        List<Long> allUsers = new ArrayList<>();
+        dbDataService.fillUsersLists(admins, adminSpecialist, allUsers);
+
+        if (IMPORT_ARTICLE_TYPE) {
+            // Insert article_type START
+            bulkInserter = new BulkInserter(TABLE_NAME_ARTICLE_TYPE, insertTime, TOTAL_ARTICLE_TYPE, connection) {
+                @Override
+                public String createQuery() {
+                    return prepareQuery(
+                            COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
+                            COL_NAME_NAME);
+                }
+
+                @Override
+                protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
+                    setStatementsIdCreatedUpdated(preparedStatement, id);
+                    preparedStatement.setString(4, "type" + id); //name
+                }
+            };
+            totalInserted += bulkInserter.insert();
+            // Insert article_type END
+        }
+
+
+        List<Long> articleTypes = new ArrayList<>();
+        dbDataService.fillIdsListFromTable(articleTypes, TABLE_NAME_ARTICLE_TYPE);
 
         // Insert article START
-        bulkInserter = new BulkInserter("article", insertTime, TOTAL_ARTICLE, connection) {
-            @Override
-            public String createQuery() {
-                return prepareQuery(
-                        COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
-                        COL_NAME_USER_ID, "article_type_id",
-                        COL_NAME_NAME, COL_NAME_URL, COL_NAME_TEXT);
-            }
+        if (IMPORT_ARTICLE) {
+            bulkInserter = new BulkInserter(TABLE_NAME_ARTICLE, insertTime, TOTAL_ARTICLE, connection) {
+                @Override
+                public String createQuery() {
+                    return prepareQuery(
+                            COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
+                            COL_NAME_USER_ID, "article_type_id",
+                            COL_NAME_NAME, COL_NAME_URL, COL_NAME_TEXT);
+                }
 
-            @Override
-            protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
-                setStatementsIdCreatedUpdated(preparedStatement, id);
-                //TODO set random USERID
-                preparedStatement.setLong(4, 1); //users_id
-                //TODO set random article type
-                preparedStatement.setLong(5, 1); //article_type_id
-                preparedStatement.setString(6, "colName" + id); //name
-                //TODO create URL
-                preparedStatement.setString(7, "colURL" + id); //url
-                preparedStatement.setString(8, "colTexta"); //text
-            }
-        };
-        totalInserted += bulkInserter.insert();
-        // Insert article END
+                @Override
+                protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
+                    setStatementsIdCreatedUpdated(preparedStatement, id);
+                    preparedStatement.setLong(4, getRandomIdFromList(adminSpecialist)); //users_id
+                    preparedStatement.setLong(5, getRandomIdFromList(articleTypes)); //article_type_id
+                    String name = "article" + id;
+                    preparedStatement.setString(6, name); //name
+                    preparedStatement.setString(7, makeFriendlyUrl(name)); //url
+                    //TODO MAKE TEXT
+                    preparedStatement.setString(8, "TEXT"); //text
+                }
+            };
+            totalInserted += bulkInserter.insert();
+            // Insert article END
+        }
 
-        // Insert category START
-        bulkInserter = new BulkInserter("category", insertTime, TOTAL_CATEGORY, connection) {
-            @Override
-            public String createQuery() {
-                return prepareQuery(
-                        COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
-                        COL_NAME_USER_ID,
-                        COL_NAME_NAME, COL_NAME_URL);
-            }
+        if (IMPORT_CATEGORY) {
+            // Insert category START
+            bulkInserter = new BulkInserter(TABLE_NAME_CATEGORY, insertTime, TOTAL_CATEGORY, connection) {
+                @Override
+                public String createQuery() {
+                    return prepareQuery(
+                            COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
+                            COL_NAME_USER_ID,
+                            COL_NAME_NAME, COL_NAME_URL);
+                }
 
-            @Override
-            protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
-                setStatementsIdCreatedUpdated(preparedStatement, id);
-                //TODO set random USERID
-                preparedStatement.setLong(4, 1);
-                preparedStatement.setString(5, "category_name" + id);
-                //TODO createurl by name
-                preparedStatement.setString(6, "url" + id);
-            }
-        };
-        totalInserted += bulkInserter.insert();
-        // Insert category END
+                @Override
+                protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
+                    setStatementsIdCreatedUpdated(preparedStatement, id);
+                    preparedStatement.setLong(4, getRandomIdFromList(admins)); //users_id
+                    String name = "category" + id;
+                    preparedStatement.setString(5, name);
+                    preparedStatement.setString(6, makeFriendlyUrl(name));
+                }
+            };
+            totalInserted += bulkInserter.insert();
+            // Insert category END
+        }
 
-        // Insert category_admin START
-        bulkInserter = new BulkInserter("category_admin", insertTime, TOTAL_CATEGORY_ADMIN, connection) {
-            @Override
-            public String createQuery() {
-                return prepareQuery(
-                        COL_NAME_CATEGORY_ID, COL_NAME_USER_ID);
-            }
+        List<Long> categories = new ArrayList<>();
+        dbDataService.fillIdsListFromTable(categories, TABLE_NAME_CATEGORY);
 
-            @Override
-            protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
-                //TODO set random category_id
-                preparedStatement.setLong(1, 1);
-                //TODO set random user_id
-                preparedStatement.setLong(2, 1);
-            }
-        };
-        totalInserted += bulkInserter.insert();
-        // Insert category_admin END
+        if (IMPORT_CATEGORY_ADMIN) {
+            // Insert category_admin START
+            bulkInserter = new BulkInserter(TABLE_NAME_CATEGORY_ADMIN, insertTime, TOTAL_CATEGORY_ADMIN, connection) {
+                @Override
+                public String createQuery() {
+                    return prepareQuery(
+                            COL_NAME_CATEGORY_ID, COL_NAME_USER_ID);
+                }
 
-        // Insert topic START
-        bulkInserter = new BulkInserter("topic", insertTime, TOTAL_TOPIC, connection) {
-            @Override
-            public String createQuery() {
-                return prepareQuery(
-                        COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
-                        COL_NAME_CATEGORY_ID, COL_NAME_USER_ID,
-                        COL_NAME_NAME, COL_NAME_TEXT);
-            }
+                @Override
+                protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
+                    preparedStatement.setLong(1, getRandomIdFromList(categories));
+                    preparedStatement.setLong(2, getRandomIdFromList(adminSpecialist));
+                }
+            };
+            totalInserted += bulkInserter.insert();
+            // Insert category_admin END
+        }
 
-            @Override
-            protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
-                setStatementsIdCreatedUpdated(preparedStatement, id);
-                //TODO set random category_id
-                preparedStatement.setLong(4, 1);
-                //TODO set random user_id
-                preparedStatement.setLong(5, 1);
-                preparedStatement.setString(6, "topic" + id);
-                preparedStatement.setString(7, "topic_text" + id);
-            }
-        };
-        totalInserted += bulkInserter.insert();
-        // Insert topic END
+        if (IMPORT_TOPIC) {
+            // Insert topic START
+            bulkInserter = new BulkInserter(TABLE_NAME_TOPIC, insertTime, TOTAL_TOPIC, connection) {
+                @Override
+                public String createQuery() {
+                    return prepareQuery(
+                            COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
+                            COL_NAME_CATEGORY_ID, COL_NAME_USER_ID,
+                            COL_NAME_NAME, COL_NAME_TEXT);
+                }
 
-        // Insert post START
-        bulkInserter = new BulkInserter("post", insertTime, TOTAL_POST, connection) {
-            @Override
-            public String createQuery() {
-                return prepareQuery(
-                        COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
-                        COL_NAME_TOPIC_ID, COL_NAME_USER_ID,
-                        COL_NAME_TEXT);
-            }
+                @Override
+                protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
+                    setStatementsIdCreatedUpdated(preparedStatement, id);
+                    preparedStatement.setLong(4, getRandomIdFromList(categories));
+                    preparedStatement.setLong(5, getRandomIdFromList(allUsers));
+                    String name = "topic" + id;
+                    //TODO Longer and diff topic topic text
+                    preparedStatement.setString(6, name);
+                    preparedStatement.setString(7, name);
+                }
+            };
+            totalInserted += bulkInserter.insert();
+            // Insert topic END
+        }
 
-            @Override
-            protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
-                setStatementsIdCreatedUpdated(preparedStatement, id);
-                //TODO set random topic_id
-                preparedStatement.setLong(4, 1);
-                //TODO set random user_id
-                preparedStatement.setLong(5, 1);
-                preparedStatement.setString(6, "post_text" + id);
-            }
-        };
-        totalInserted += bulkInserter.insert();
-        // Insert post END
+        List<Long> topics = new ArrayList<>();
+        dbDataService.fillIdsListFromTable(topics, TABLE_NAME_TOPIC);
 
-        // Insert topic_watching_user START
-        bulkInserter = new BulkInserter("topic_watching_user", insertTime, TOTAL_TOPIC_WATCHING_USER, connection) {
-            @Override
-            public String createQuery() {
-                return prepareQuery(
-                        COL_NAME_TOPIC_ID, COL_NAME_USER_ID);
-            }
+        if (IMPORT_POST) {
+            // Insert post START
+            bulkInserter = new BulkInserter(TABLE_NAME_POST, insertTime, TOTAL_POST, connection) {
+                @Override
+                public String createQuery() {
+                    return prepareQuery(
+                            COL_NAME_ID, COL_NAME_CREATE_DATE_TIME, COL_NAME_UPDATE_DATE_TIME,
+                            COL_NAME_TOPIC_ID, COL_NAME_USER_ID,
+                            COL_NAME_TEXT);
+                }
 
-            @Override
-            protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
-                //TODO set random topic_id
-                preparedStatement.setLong(1, 1);
-                //TODO set random user_id
-                preparedStatement.setLong(2, 1);
-            }
-        };
-        totalInserted += bulkInserter.insert();
-        // Insert topic_watching_user END
+                @Override
+                protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
+                    setStatementsIdCreatedUpdated(preparedStatement, id);
+                    preparedStatement.setLong(4, getRandomIdFromList(topics));
+                    preparedStatement.setLong(5, getRandomIdFromList(allUsers));
+                    preparedStatement.setString(6, "POST" + id);
+                }
+            };
+            totalInserted += bulkInserter.insert();
+            // Insert post END
+        }
 
+        if (IMPORT_TOPIC_WATCHING_USER) {
+            // Insert topic_watching_user START
+            bulkInserter = new BulkInserter(TABLE_NAME_TOPIC_WATCHING_USER, insertTime, TOTAL_TOPIC_WATCHING_USER, connection) {
+                @Override
+                public String createQuery() {
+                    return prepareQuery(
+                            COL_NAME_TOPIC_ID, COL_NAME_USER_ID);
+                }
 
-        //preparedStatement.close();
+                @Override
+                protected void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException {
+                    preparedStatement.setLong(1, getRandomIdFromList(topics));
+                    preparedStatement.setLong(2, getRandomIdFromList(allUsers));
+                }
+            };
+            totalInserted += bulkInserter.insert();
+            // Insert topic_watching_user END
+        }
+
         //TODO UPDATE USERS COUNT POSTs, TOPICs, ARTICLES
         connection.close();
         long end = System.currentTimeMillis();
         System.out.println("End bulk insert. Total time taken: " + (end - start) / 1000 + " s" + " Total inserted: " + totalInserted);
     }
-
 }

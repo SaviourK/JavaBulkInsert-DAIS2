@@ -1,34 +1,16 @@
 package com.kanok.inserter;
 
-import com.github.javafaker.Faker;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.SplittableRandom;
 
 public abstract class BulkInserter {
-
-    protected static final String COL_NAME_ID = "id";
-    protected static final String COL_NAME_CREATE_DATE_TIME = "create_date_time";
-    protected static final String COL_NAME_UPDATE_DATE_TIME = "update_date_time";
-    protected static final String COL_NAME_NAME = "name";
-    protected static final String COL_NAME_TEXT = "text";
-    protected static final String COL_NAME_URL = "url";
-    protected static final String COL_NAME_USER_ID = "user_id";
-    protected static final String COL_NAME_CATEGORY_ID = "category_id";
-    protected static final String COL_NAME_TOPIC_ID = "topic_id";
 
     protected final String tableName;
     protected final Timestamp insertTime;
     private final long totalInsert;
     private final Connection connection;
-
-    protected Faker faker;
-    protected SplittableRandom splittableRandom;
-    protected BCryptPasswordEncoder encoder;
 
     protected BulkInserter(String tableName, Timestamp insertTime, long totalInsert, Connection connection) {
         this.tableName = tableName;
@@ -112,17 +94,5 @@ public abstract class BulkInserter {
         preparedStatement.setLong(1, id); //id
         preparedStatement.setTimestamp(2, insertTime); //create_date_time
         preparedStatement.setTimestamp(3, insertTime); //update_date_time
-    }
-
-    public void setFaker(Faker faker) {
-        this.faker = faker;
-    }
-
-    public void setSplittableRandom(SplittableRandom splittableRandom) {
-        this.splittableRandom = splittableRandom;
-    }
-
-    public void setEncoder(BCryptPasswordEncoder encoder) {
-        this.encoder = encoder;
     }
 }
