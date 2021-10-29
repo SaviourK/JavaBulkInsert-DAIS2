@@ -2,6 +2,9 @@ package com.kanok.inserter.constants;
 
 public class ImportConstants {
 
+    private ImportConstants() {
+    }
+
     // total imported instances
     public static final int TOTAL_USER = 1000;
     public static final int TOTAL_ARTICLE_TYPE = 50;
@@ -14,13 +17,13 @@ public class ImportConstants {
 
     // import switcher
     public static final boolean IMPORT_USER = true;
-    public static final boolean IMPORT_ARTICLE_TYPE = true;
-    public static final boolean IMPORT_ARTICLE = true;
-    public static final boolean IMPORT_CATEGORY = true;
-    public static final boolean IMPORT_CATEGORY_ADMIN = true;
-    public static final boolean IMPORT_TOPIC = true;
-    public static final boolean IMPORT_POST = true;
-    public static final boolean IMPORT_TOPIC_WATCHING_USER = true;
+    public static final boolean IMPORT_ARTICLE_TYPE = false;
+    public static final boolean IMPORT_ARTICLE = false;
+    public static final boolean IMPORT_CATEGORY = false;
+    public static final boolean IMPORT_CATEGORY_ADMIN = false;
+    public static final boolean IMPORT_TOPIC = false;
+    public static final boolean IMPORT_POST = false;
+    public static final boolean IMPORT_TOPIC_WATCHING_USER = false;
 
     // table columns name
     public static final String COL_NAME_ID = "id";
@@ -36,7 +39,7 @@ public class ImportConstants {
     // table names
     public static final String TABLE_NAME_USERS = "USERS";
     public static final String TABLE_NAME_ARTICLE_TYPE = "ARTICLE_TYPE";
-    public static final String TABLE_NAME_ARTICLE = "TABLE_NAME_ARTICLE";
+    public static final String TABLE_NAME_ARTICLE = "ARTICLE";
     public static final String TABLE_NAME_CATEGORY = "CATEGORY";
     public static final String TABLE_NAME_CATEGORY_ADMIN = "CATEGORY_ADMIN";
     public static final String TABLE_NAME_TOPIC = "TOPIC";

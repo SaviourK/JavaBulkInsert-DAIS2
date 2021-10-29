@@ -21,6 +21,8 @@ public class DataInsertJob {
         }
     }
 
+    //TODO Minule jsem dodelal USERs faker pokracovat dalsima fakerama zkusit jine library pro article_type
+
     //TODO stop indexing and constraints?
     private void bulkInsert(Connection connection) throws SQLException {
         int expectedTotalInserted = TOTAL_USER + TOTAL_ARTICLE_TYPE + TOTAL_ARTICLE + TOTAL_CATEGORY + TOTAL_CATEGORY_ADMIN + TOTAL_TOPIC + TOTAL_POST + TOTAL_TOPIC_WATCHING_USER;
@@ -40,7 +42,7 @@ public class DataInsertJob {
         //insertImages(connection);
 
         if (IMPORT_USER) {
-            List<User> listUsers = fakeDataService.createFakeUsers();
+            List<User> listUsers = fakeDataService.createUsers();
             // Insert users START
             bulkInserter = new BulkInserter(TABLE_NAME_USERS, insertTime, TOTAL_USER, connection) {
                 @Override
@@ -82,6 +84,7 @@ public class DataInsertJob {
         dbDataService.fillUsersLists(admins, adminSpecialist, allUsers);
 
         if (IMPORT_ARTICLE_TYPE) {
+            List<String> articleTypes = fakeDataService.createArticleTypes();
             // Insert article_type START
             bulkInserter = new BulkInserter(TABLE_NAME_ARTICLE_TYPE, insertTime, TOTAL_ARTICLE_TYPE, connection) {
                 @Override
