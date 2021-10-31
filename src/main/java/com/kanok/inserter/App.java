@@ -1,8 +1,8 @@
 package com.kanok.inserter;
 
-public class Exec {
+public class App {
 
-    public static void main(String[] args) throws ClassNotFoundException {
+    public static void main(String[] args) {
         String connectionUrl = "jdbc:sqlserver://localhost;databaseName=laryngektomie;user=admin;password=admin";
 
         DataInsertJob dataInsertJob = new DataInsertJob();

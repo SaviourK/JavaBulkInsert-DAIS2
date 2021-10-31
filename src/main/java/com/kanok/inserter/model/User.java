@@ -8,14 +8,18 @@ public class User {
     private final String email;
     private final String hashedPassword;
     private final String aboutMe;
+    private final boolean aboutUs;
+    private final boolean enabled;
 
-    public User(String firstName, String lastName, String username, String email, String hashedPassword, String aboutMe) {
+    public User(String firstName, String lastName, String username, String email, String hashedPassword, String aboutMe, boolean aboutUs, boolean enabled) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.username = username;
         this.email = email;
         this.hashedPassword = hashedPassword;
         this.aboutMe = aboutMe;
+        this.aboutUs = aboutUs;
+        this.enabled = enabled;
     }
 
     public String getFirstName() {
@@ -40,5 +44,13 @@ public class User {
 
     public String getAboutMe() {
         return aboutMe;
+    }
+
+    public boolean isAboutUs() {
+        return aboutUs;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 }

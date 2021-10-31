@@ -1,5 +1,7 @@
 package com.kanok.inserter;
 
+import com.kanok.inserter.constants.ImportConstants;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -9,10 +11,10 @@ public abstract class BulkInserter {
 
     protected final String tableName;
     protected final Timestamp insertTime;
-    private final long totalInsert;
+    private final int totalInsert;
     private final Connection connection;
 
-    protected BulkInserter(String tableName, Timestamp insertTime, long totalInsert, Connection connection) {
+    protected BulkInserter(String tableName, Timestamp insertTime, int totalInsert, Connection connection) {
         this.tableName = tableName;
         this.connection = connection;
         this.insertTime = insertTime;
@@ -27,45 +29,7 @@ public abstract class BulkInserter {
 
     protected abstract String createQuery() throws SQLException;
 
-    protected abstract void setStatementData(PreparedStatement preparedStatement, long id) throws SQLException;
-
-    protected int executeTableBatch(PreparedStatement preparedStatement) throws SQLException {
-        long start = startTableBatch();
-
-        int totalInserted = 0;
-        for (long i = 1; i < totalInsert + 1; i++) {
-            setStatementData(preparedStatement, i);
-            totalInserted += executeBatch(preparedStatement, totalInserted, start, i);
-        }
-
-        totalInserted += endTableBatch(preparedStatement, start);
-        return totalInserted;
-    }
-
-    protected int executeBatch(PreparedStatement preparedStatement, int totalInserted, long start, long i) throws SQLException {
-        preparedStatement.addBatch();
-        if (i % 10000 == 0) {
-            totalInserted += preparedStatement.executeBatch().length;
-            connection.commit();
-            long end = System.currentTimeMillis();
-            System.out.println("Table: " + tableName + " Total time taken = " + (end - start) / 1000 + " s" + " total inserted " + totalInserted + " i =" + i);
-        }
-        return totalInserted;
-    }
-
-    protected long startTableBatch() {
-        System.out.println("Start inserting for Table: " + tableName);
-        return System.currentTimeMillis();
-    }
-
-    protected int endTableBatch(PreparedStatement preparedStatement, long start) throws SQLException {
-        int totalInserted = preparedStatement.executeBatch().length;
-        preparedStatement.close();
-        connection.commit();
-        long end = System.currentTimeMillis();
-        System.out.println("End inserting for Table: " + tableName + " Total time taken = " + (end - start) / 1000 + " s" + " total inserted " + totalInserted);
-        return totalInserted;
-    }
+    protected abstract void setStatementData(PreparedStatement preparedStatement, int id) throws SQLException;
 
     protected String prepareQuery(String... columns) {
         String columnsString = String.join(",", columns);
@@ -78,6 +42,51 @@ public abstract class BulkInserter {
         return query;
     }
 
+    protected void setStatementsIdCreatedUpdated(PreparedStatement preparedStatement, long id) throws SQLException {
+        preparedStatement.setLong(1, id); //id
+        preparedStatement.setTimestamp(2, insertTime); //create_date_time
+        preparedStatement.setTimestamp(3, insertTime); //update_date_time
+    }
+
+    private int executeTableBatch(PreparedStatement preparedStatement) throws SQLException {
+        long start = startTableBatch();
+
+        int totalInserted = 0;
+        for (int i = 1; i < totalInsert + 1; i++) {
+            setStatementData(preparedStatement, i);
+            totalInserted += executeBatch(preparedStatement, totalInserted, start, i, totalInsert);
+        }
+
+        totalInserted += endTableBatch(preparedStatement, totalInserted, start, totalInsert);
+        return totalInserted;
+    }
+
+    private int executeBatch(PreparedStatement preparedStatement, int totalInserted, long start, int i, int totalInsert) throws SQLException {
+        preparedStatement.addBatch();
+        int inserted = 0;
+        if (i % ImportConstants.BATCH_SIZE == 0) {
+            inserted = preparedStatement.executeBatch().length;
+            connection.commit();
+            long end = System.currentTimeMillis();
+            System.out.println("Table: " + tableName + " Total time taken = " + (end - start) / 1000 + " s. Total inserted " + (totalInserted + inserted) + "/" + totalInsert);
+        }
+        return inserted;
+    }
+
+    private long startTableBatch() {
+        System.out.println("Start inserting for Table: " + tableName);
+        return System.currentTimeMillis();
+    }
+
+    private int endTableBatch(PreparedStatement preparedStatement, int totalInserted, long start, int totalInsert) throws SQLException {
+        int inserted = preparedStatement.executeBatch().length;
+        preparedStatement.close();
+        connection.commit();
+        long end = System.currentTimeMillis();
+        System.out.println("End inserting for Table: " + tableName + " Total time taken = " + (end - start) / 1000 + " s. Total inserted " + (totalInserted + inserted) + "/" + totalInsert);
+        return inserted;
+    }
+
     protected String createValues(int size) {
         StringBuilder values = new StringBuilder();
         for (int i = 0; i < size; i++) {
@@ -88,11 +97,5 @@ public abstract class BulkInserter {
             }
         }
         return values.toString();
-    }
-
-    protected void setStatementsIdCreatedUpdated(PreparedStatement preparedStatement, long id) throws SQLException {
-        preparedStatement.setLong(1, id); //id
-        preparedStatement.setTimestamp(2, insertTime); //create_date_time
-        preparedStatement.setTimestamp(3, insertTime); //update_date_time
     }
 }

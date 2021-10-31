@@ -31,8 +31,8 @@ public class UtilsService {
         return idList.get(splittableRandom.nextInt(idList.size()));
     }
 
-    public static String getStringFromListById(List<String> string, long id) {
-        return string.get((int) id);
+    public static String getRandomStringFromList(List<String> stringList) {
+        return stringList.get(splittableRandom.nextInt(stringList.size()));
     }
 
     public static int getRole(long id) {

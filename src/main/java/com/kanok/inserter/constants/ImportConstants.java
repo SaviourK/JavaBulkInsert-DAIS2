@@ -1,22 +1,35 @@
 package com.kanok.inserter.constants;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class ImportConstants {
 
     private ImportConstants() {
     }
 
+    public static final int BATCH_SIZE = 10_000;
+
+    // hash types
+    public static final String HASH_TYPE_SHA3_256 = "SHA3-256";
+    public static final String HASH_TYPE_BCRYPT = "BCrypt";
+
+    //Enum values
+    public static final List<String> ARTICLE_TYPE_NAMES = Arrays.asList("meeting", "conference", "newsletter", "announcement", "therapy", "session");
+    public static final List<String> CATEGORY_NAMES = Arrays.asList("Rules", "Laryngectomy", "Esophageal voice", "Voice prosthesis", "Electrolarynx");
+
     // total imported instances
     public static final int TOTAL_USER = 1000;
-    public static final int TOTAL_ARTICLE_TYPE = 50;
-    public static final int TOTAL_ARTICLE = 300000;
-    public static final int TOTAL_CATEGORY = 10;
-    public static final int TOTAL_CATEGORY_ADMIN = 20;
+    public static final int TOTAL_ARTICLE_TYPE = ARTICLE_TYPE_NAMES.size();
+    public static final int TOTAL_ARTICLE = 100;
+    public static final int TOTAL_CATEGORY = CATEGORY_NAMES.size();
+    public static final int TOTAL_CATEGORY_ADMIN = 10;
     public static final int TOTAL_TOPIC = 50000;
     public static final int TOTAL_POST = 5000000;
-    public static final int TOTAL_TOPIC_WATCHING_USER = 50000;
+    public static final int TOTAL_TOPIC_WATCHING_USER = 10000;
 
     // import switcher
-    public static final boolean IMPORT_USER = true;
+    public static final boolean IMPORT_USER = false;
     public static final boolean IMPORT_ARTICLE_TYPE = false;
     public static final boolean IMPORT_ARTICLE = false;
     public static final boolean IMPORT_CATEGORY = false;
@@ -24,6 +37,9 @@ public class ImportConstants {
     public static final boolean IMPORT_TOPIC = false;
     public static final boolean IMPORT_POST = false;
     public static final boolean IMPORT_TOPIC_WATCHING_USER = false;
+
+    // postprocess switch
+    public static final boolean POSTPROCESS_USER = true;
 
     // table columns name
     public static final String COL_NAME_ID = "id";
