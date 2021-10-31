@@ -17,17 +17,17 @@ public class UpdateDataService {
 
     public void updateUsers(List<UserCount> userCounts) throws SQLException {
         String sql = "update users set topic_count=?, post_count=?, article_count=? where id=?";
-        PreparedStatement preparedStatement = connection.prepareStatement(sql);
-        for (UserCount uc : userCounts) {
-            preparedStatement.setInt(1, uc.getTopicCount());
-            preparedStatement.setInt(2, uc.getPostCount());
-            preparedStatement.setInt(3, uc.getArticleCount());
-            preparedStatement.setLong(4, uc.getUserId());
-            preparedStatement.addBatch();
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            for (UserCount uc : userCounts) {
+                preparedStatement.setInt(1, uc.getTopicCount());
+                preparedStatement.setInt(2, uc.getPostCount());
+                preparedStatement.setInt(3, uc.getArticleCount());
+                preparedStatement.setLong(4, uc.getUserId());
+                preparedStatement.addBatch();
+            }
+            int totalUpdated = preparedStatement.executeBatch().length;
+            connection.commit();
+            System.out.println("Total updated users: " + totalUpdated);
         }
-        int totalUpdated = preparedStatement.executeBatch().length;
-        connection.commit();
-        System.out.println("Total updated users: " + totalUpdated);
-        preparedStatement.close();
     }
 }

@@ -68,7 +68,7 @@ public abstract class BulkInserter {
             inserted = preparedStatement.executeBatch().length;
             connection.commit();
             long end = System.currentTimeMillis();
-            System.out.println("Table: " + tableName + " Total time taken = " + (end - start) / 1000 + " s. Total inserted " + (totalInserted + inserted) + "/" + totalInsert);
+            System.out.println("Table: " + tableName + " Total time taken = " + (end - start) + " ms. Total inserted " + (totalInserted + inserted) + "/" + totalInsert);
         }
         return inserted;
     }
@@ -83,7 +83,7 @@ public abstract class BulkInserter {
         preparedStatement.close();
         connection.commit();
         long end = System.currentTimeMillis();
-        System.out.println("End inserting for Table: " + tableName + " Total time taken = " + (end - start) / 1000 + " s. Total inserted " + (totalInserted + inserted) + "/" + totalInsert);
+        System.out.println("End inserting for Table: " + tableName + " Total time taken = " + (end - start) + " ms. Total inserted " + (totalInserted + inserted) + "/" + totalInsert);
         return inserted;
     }
 

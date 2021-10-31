@@ -5,6 +5,7 @@ import com.github.javafaker.Lorem;
 import com.github.javafaker.Medical;
 import com.kanok.inserter.model.Article;
 import com.kanok.inserter.model.Category;
+import com.kanok.inserter.model.Image;
 import com.kanok.inserter.model.User;
 import fabricator.Contact;
 import fabricator.Fabricator;
@@ -34,6 +35,19 @@ public class FakeDataService {
         this.hashType = hashType;
         this.random = new SplittableRandom();
         this.faker = new Faker();
+    }
+
+    public List<Image> createImages() {
+        long startTime = start(TABLE_NAME_IMAGE, TOTAL_IMAGE);
+        List<Image> images = new ArrayList<>();
+
+        for (int i = 0; i < TOTAL_IMAGE; i++) {
+            faker.internet().image();
+            images.add(new Image(faker.internet().image().getBytes(StandardCharsets.UTF_8), "image" + i, "image/jpeg"));
+        }
+
+        end(TABLE_NAME_IMAGE, TOTAL_IMAGE, startTime);
+        return images;
     }
 
     public List<User> createUsers() throws NoSuchAlgorithmException {
@@ -157,6 +171,6 @@ public class FakeDataService {
 
     private void end(String type, int total, long startTime) {
         long endTime = System.currentTimeMillis();
-        System.out.println("Creating fake " + type + " END. Total " + total + ". Total time taken: " + (endTime - startTime) / 1000 + " s");
+        System.out.println("Creating fake " + type + " END. Total " + total + ". Total time taken: " + (endTime - startTime) + " ms");
     }
 }
